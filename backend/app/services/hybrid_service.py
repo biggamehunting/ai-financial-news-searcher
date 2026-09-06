@@ -51,15 +51,27 @@ def search_internal_knowledge(question: str) -> str:
         return f"An error occurred while searching internal knowledge: {str(e)}"
 
 
-def hybrid_search(question: str, k: int = 5, top_n: int = 3):
+def hybrid_search(question: str, k, top_n):
 
+    print("🔵 Starting vector search...")
     vector_results = vector_store.similarity_search(
         question,
         k=k,
     )
-
+    # for i, doc in enumerate(vector_results, start=1):
+    #     print(f"\nVector {i}")
+    #     print("Source:", doc.metadata.get("source"))
+    #     print("Content:", doc.page_content[:200])
+    print("✅ Vector search completed.")
+    
+    print("🟢 Starting BM25 search...")
     bm25_results = bm25_search(question)
-
+    # for i, doc in enumerate(bm25_results, start=1):
+    #     print(f"\nBM25 {i}")
+    #     print("Source:", doc.metadata.get("source"))
+    #     print("Content:", doc.page_content[:200])
+    print("✅ BM25 search completed.")
+    
     combined = vector_results + bm25_results
 
     unique_results = []
@@ -74,14 +86,15 @@ def hybrid_search(question: str, k: int = 5, top_n: int = 3):
         if key not in seen:
             seen.add(key)
             unique_results.append(doc)
-
+    candidate_count = len(unique_results)
+    print(f"📦 Reranker candidates: {len(unique_results)}")
     reranked_results = rerank_documents(
         question,
         unique_results,
         top_n=top_n,
     )
 
-    return reranked_results
+    return reranked_results, candidate_count
 
 @tool
 def delete_payment(payment_id: str) -> str:

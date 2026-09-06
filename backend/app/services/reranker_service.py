@@ -9,11 +9,14 @@ load_dotenv()
 COHERE_API_KEY = os.getenv("COHERE_API_KEY")
 
 co = cohere.ClientV2(COHERE_API_KEY)
-
+reranker_calls = 0
 
 def rerank_documents(question: str, documents, top_n: int = 3):
     texts = [doc.page_content for doc in documents]
     print("🔄 Cohere reranking started...")
+    global reranker_calls
+    reranker_calls += 1
+    print(f"💰 Reranker API calls: {reranker_calls}")
     response = co.rerank(
         model="rerank-v4.0-fast",
         query=question,
