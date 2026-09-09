@@ -16,6 +16,7 @@ def search_internal_knowledge(question: str) -> str:
 
     Do NOT use this tool for current, public, or internet information.
     """
+    print("🔵 INTERNAL RAG TOOL CALLED:", question)
     try:
 
         if not question or not question.strip():
@@ -49,10 +50,39 @@ def search_internal_knowledge(question: str) -> str:
         #     print("\nCONTENT:")
         #     print(result.page_content[:500])
 
-        return "\n\n".join(
-            doc.page_content
-            for doc in results
-        )
+        # return "\n\n".join(
+        #     doc.page_content
+        #     for doc in results
+        # )
+        formatted_results = []
+
+
+        for i, doc in enumerate(results, start=1):
+            metadata = doc.metadata or {}
+
+            source = metadata.get("source", "Unknown")
+            page = metadata.get("page")
+            table_number = metadata.get("table_number")
+
+            citation = f"[Source {i}: {source}"
+
+            if page is not None:
+                citation += f", Page {page}"
+
+            if table_number is not None:
+                citation += f", Table {table_number}"
+
+            citation += "]"
+
+            formatted = f"{citation}\n{doc.page_content}"
+
+            print("\n========== RETRIEVED DOCUMENT ==========")
+            print(formatted)
+            print("=========================================\n")
+
+            formatted_results.append(formatted)
+
+        return "\n\n".join(formatted_results)
 
     except Exception as e:
         return f"An error occurred while searching internal knowledge: {str(e)}"
