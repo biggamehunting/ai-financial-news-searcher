@@ -53,6 +53,27 @@ bm25_retriever = BM25Retriever.from_documents(
 bm25_retriever.k = 5
 
 
-def bm25_search(question: str):
+# def bm25_search(question: str):
+#     print("🔎 BM25 search started...")
+#     return bm25_retriever.invoke(question)
+
+def bm25_search(
+    question: str,
+    document_id: str | None = None,
+    k: int = 5,
+):
     print("🔎 BM25 search started...")
+
+    if document_id:
+        filtered_documents = [
+            doc
+            for doc in documents
+            if doc.metadata.get("document_id") == document_id
+        ]
+
+        retriever = BM25Retriever.from_documents(filtered_documents)
+        retriever.k = k
+
+        return retriever.invoke(question)
+
     return bm25_retriever.invoke(question)

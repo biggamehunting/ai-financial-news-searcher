@@ -21,7 +21,7 @@ def search_internal_knowledge(question: str) -> str:
         if not question or not question.strip():
             return "No valid question was provided."
 
-        results = hybrid_search(
+        results, candidate_count = hybrid_search(
             question,
             k=5,
             top_n=3,
@@ -31,16 +31,23 @@ def search_internal_knowledge(question: str) -> str:
             return "No relevant internal information was found."
 
         for i, result in enumerate(results):
-
             print("\n==============================")
-            print("RERANKED RESULT:", i + 1)
+            print("RESULT TYPE:", type(result))
+            print("RESULT:", result)
+            print("METADATA:", getattr(result, "metadata", "NO METADATA ATTRIBUTE"))
             print("==============================")
 
-            print("SOURCE:", result.metadata.get("source"))
-            print("SECTION:", result.metadata.get("section"))
+        # for i, result in enumerate(results):
 
-            print("\nCONTENT:")
-            print(result.page_content[:500])
+        #     print("\n==============================")
+        #     print("RERANKED RESULT:", i + 1)
+        #     print("==============================")
+
+        #     print("SOURCE:", result.metadata.get("source"))
+        #     print("SECTION:", result.metadata.get("section"))
+
+        #     print("\nCONTENT:")
+        #     print(result.page_content[:500])
 
         return "\n\n".join(
             doc.page_content

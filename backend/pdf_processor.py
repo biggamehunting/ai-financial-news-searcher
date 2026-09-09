@@ -2,16 +2,36 @@ import fitz  # PyMuPDF
 import fitz
 
 
-def extract_text_from_pdf(file_path: str) -> str:
+
+
+
+def extract_pdf_elements(file_path: str):
+    """
+    Extract PDF into structured elements.
+
+    Each element is either:
+    - text
+    - table
+
+    Example:
+    {
+        "page": 2,
+        "type": "table",
+        "table_number": 1,
+        "content": "Component | Monthly | Annual\nBasic | ..."
+    }
+    """
+
     doc = fitz.open(file_path)
 
-    pages = []
+    elements = []
 
     for page_number, page in enumerate(doc, start=1):
 
-        content = []
+        # ==================================================
+        # 1. Find tables
+        # ==================================================
 
-        # Find tables on this page
         tables = page.find_tables()
 
         table_bboxes = [
@@ -19,17 +39,24 @@ def extract_text_from_pdf(file_path: str) -> str:
             for table in tables.tables
         ]
 
-        # Extract normal text blocks
+        # ==================================================
+        # 2. Extract normal text
+        # ==================================================
+
         blocks = page.get_text("blocks")
 
         for block in blocks:
+
             x0, y0, x1, y1, text, *_ = block
 
-            # Skip text that belongs to a table.
-            # We will add the table separately below.
+            if not text.strip():
+                continue
+
+            # Check whether this text block is inside a table
             inside_table = False
 
             for bbox in table_bboxes:
+
                 tx0, ty0, tx1, ty1 = bbox
 
                 if (
@@ -41,10 +68,19 @@ def extract_text_from_pdf(file_path: str) -> str:
                     inside_table = True
                     break
 
-            if not inside_table and text.strip():
-                content.append(text.strip())
+            # Don't add table text as normal text
+            if not inside_table:
 
-        # Extract tables
+                elements.append({
+                    "page": page_number,
+                    "type": "text",
+                    "content": text.strip()
+                })
+
+        # ==================================================
+        # 3. Extract tables
+        # ==================================================
+
         for table_number, table in enumerate(
             tables.tables,
             start=1
@@ -55,25 +91,105 @@ def extract_text_from_pdf(file_path: str) -> str:
             if not rows:
                 continue
 
-            content.append(f"\n[TABLE {table_number}]")
+            table_rows = []
 
             for row in rows:
+
                 row_text = " | ".join(
                     str(cell or "").strip()
                     for cell in row
                 )
 
-                content.append(row_text)
+                table_rows.append(row_text)
 
-        if content:
-            pages.append(
-                f"===== PAGE {page_number} =====\n"
-                + "\n".join(content)
-            )
+            table_text = "\n".join(table_rows)
+
+            elements.append({
+                "page": page_number,
+                "type": "table",
+                "table_number": table_number,
+                "content": table_text
+            })
 
     doc.close()
 
-    return "\n\n".join(pages)
+    return elements
+
+
+
+
+# def extract_text_from_pdf(file_path: str) -> str:
+#     doc = fitz.open(file_path)
+
+#     pages = []
+
+#     for page_number, page in enumerate(doc, start=1):
+
+#         content = []
+
+#         # Find tables on this page
+#         tables = page.find_tables()
+
+#         table_bboxes = [
+#             table.bbox
+#             for table in tables.tables
+#         ]
+
+#         # Extract normal text blocks
+#         blocks = page.get_text("blocks")
+
+#         for block in blocks:
+#             x0, y0, x1, y1, text, *_ = block
+
+#             # Skip text that belongs to a table.
+#             # We will add the table separately below.
+#             inside_table = False
+
+#             for bbox in table_bboxes:
+#                 tx0, ty0, tx1, ty1 = bbox
+
+#                 if (
+#                     x0 >= tx0
+#                     and y0 >= ty0
+#                     and x1 <= tx1
+#                     and y1 <= ty1
+#                 ):
+#                     inside_table = True
+#                     break
+
+#             if not inside_table and text.strip():
+#                 content.append(text.strip())
+
+#         # Extract tables
+#         for table_number, table in enumerate(
+#             tables.tables,
+#             start=1
+#         ):
+
+#             rows = table.extract()
+
+#             if not rows:
+#                 continue
+
+#             content.append(f"\n[TABLE {table_number}]")
+
+#             for row in rows:
+#                 row_text = " | ".join(
+#                     str(cell or "").strip()
+#                     for cell in row
+#                 )
+
+#                 content.append(row_text)
+
+#         if content:
+#             pages.append(
+#                 f"===== PAGE {page_number} =====\n"
+#                 + "\n".join(content)
+#             )
+
+#     doc.close()
+
+#     return "\n\n".join(pages)
 
 
 
