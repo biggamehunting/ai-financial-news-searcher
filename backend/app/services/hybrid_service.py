@@ -6,6 +6,7 @@ from langchain_core.tools import tool
 from app.services.rag_service import vector_store
 from app.services.bm25_service import bm25_search
 from app.services.reranker_service import rerank_documents
+from app.services.confidence_service import calculate_confidence
 
 @tool
 def search_internal_knowledge(question: str) -> str:
@@ -22,12 +23,16 @@ def search_internal_knowledge(question: str) -> str:
         if not question or not question.strip():
             return "No valid question was provided."
 
-        results, candidate_count = hybrid_search(
+        results, candidate_count, rerank_scores  = hybrid_search(
             question,
             k=5,
             top_n=3,
         )
+        confidence, confidence_level = calculate_confidence(rerank_scores)
 
+        print("RERANK SCORES:", rerank_scores)
+        print("CONFIDENCE:", confidence)
+        print("CONFIDENCE LEVEL:", confidence_level)
         if not results:
             return "No relevant internal information was found."
 
@@ -82,7 +87,11 @@ def search_internal_knowledge(question: str) -> str:
 
             formatted_results.append(formatted)
 
-        return "\n\n".join(formatted_results)
+        confidence_info = (
+            f"[Retrieval confidence: {confidence_level} ({confidence})]\n\n"
+        )
+
+        return confidence_info + "\n\n".join(formatted_results)
 
     except Exception as e:
         return f"An error occurred while searching internal knowledge: {str(e)}"
@@ -125,13 +134,13 @@ def hybrid_search(question: str, k, top_n):
             unique_results.append(doc)
     candidate_count = len(unique_results)
     print(f"📦 Reranker candidates: {len(unique_results)}")
-    reranked_results = rerank_documents(
+    reranked_results, rerank_scores  = rerank_documents(
         question,
         unique_results,
         top_n=top_n,
     )
 
-    return reranked_results, candidate_count
+    return reranked_results, candidate_count, rerank_scores
 
 @tool
 def delete_payment(payment_id: str) -> str:

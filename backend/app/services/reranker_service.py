@@ -24,10 +24,28 @@ def rerank_documents(question: str, documents, top_n: int = 3):
         top_n=top_n,
     )
     print("✅ Cohere reranking completed.")
-    return [
-        documents[result.index]
+
+    for result in response.results:
+        print(
+            f"RERANK RESULT → index={result.index}, "
+            f"score={result.relevance_score}"
+        )
+
+    reranked_documents = [
+    documents[result.index]
+    for result in response.results
+    ]
+
+    scores = [
+        result.relevance_score
         for result in response.results
     ]
+
+    return reranked_documents, scores
+    # return [
+    #     documents[result.index]
+    #     for result in response.results
+    # ]
 
 # def rerank_documents(question: str, documents, top_n: int = 3):
 #     texts = [
